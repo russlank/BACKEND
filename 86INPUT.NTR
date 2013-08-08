@@ -1,0 +1,50 @@
+
+#global BYTE 5
+        WORD
+        POINTER 2
+
+#proc 12
+#param POINTER 1 BYTE 200
+#begin
+#end
+
+#proc 25
+#param WORD 2 WORD 2
+#local BYTE 1 BYTE 4 WORD BYTE  3
+#return POINTER
+#begin
+      op IF_ABOVE_JUMP con BYTE 30 glob BYTE 2 id 1000
+
+      op ASSIGN_BYTE glob BYTE 1 op SUM_BYTE glob BYTE 3 glob BYTE 2
+
+      op LABEL id 1000
+
+      #param con BYTE 11 con BYTE 22 glob BYTE 2 glob BYTE 1
+      #call BYTE 12
+
+      op LABEL id 2000
+
+      op ASSIGN_BYTE glob BYTE 1 op SUM_BYTE glob BYTE 3 glob BYTE 2
+
+      #param con BYTE 2 con BYTE 3 glob BYTE 2 glob BYTE 1
+      #call 12
+
+      op ASSIGN_BYTE glob BYTE 1 op SUM_BYTE glob BYTE 3 glob BYTE 2
+#end
+
+
+#begin
+      op ASSIGN_BYTE glob BYTE 1 op SUM_BYTE glob BYTE 3 glob BYTE 2
+
+      #param con BYTE 0 con BYTE 10 glob BYTE 2 glob BYTE 1
+      #call WORD 12
+
+      #freereturn
+      op ASSIGN_BYTE glob BYTE 1 op SUM_BYTE glob BYTE 3 glob BYTE 1
+      op ASSIGN_BYTE glob BYTE 1 op SUM_BYTE glob BYTE 3 glob BYTE 1
+      op ASSIGN_BYTE glob BYTE 1 op SUM_BYTE glob BYTE 3 glob BYTE 1
+      op ASSIGN_BYTE glob BYTE 1 op SUM_BYTE glob BYTE 3 glob BYTE 1
+      op ASSIGN_BYTE glob BYTE 1 op SUM_BYTE glob BYTE 3 glob BYTE 1
+      op ASSIGN_BYTE glob BYTE 1 op SUM_BYTE glob BYTE 3 glob BYTE 1
+      op ASSIGN_BYTE glob BYTE 1 op SUM_BYTE glob BYTE 3 glob BYTE 1
+#end

@@ -1,0 +1,297 @@
+
+#typedef    BYTE    1
+            WORD    2
+            POINTER 2
+
+#symdef     BYTE_TOP
+            JASEM1
+            JASEM2
+
+#opdef      LABEL
+
+            IND_BYTE
+            SUM_BYTE
+            SUB_BYTE
+            MUL_BYTE
+            DIV_BYTE
+            ASSIGN_BYTE
+            IND_WORD
+            SUM_WORD
+            SUB_WORD
+            MUL_WORD
+            DIV_WORD
+            ASSIGN_WORD
+            WORD_TO_BYTE
+            BYTE_TO_WORD
+
+            IF_ABOVE_JUMP
+
+
+#macro block ProgramHeader
+{       .MODEL  small
+       .STACK  200h
+       .DATA
+	DB ##<GLOBAL_DATA_SIZE> DUP (0)
+       .CODE
+
+}
+
+#macro block ProgramTail
+{        END Begin
+}
+
+#macro block ProcedureHeader
+{
+Proc##<PROC_ID> PROC NEAR
+}
+
+#macro block ProcedureInitPart
+{        push bp
+	sub sp,##<LOCAL_DATA_SIZE>
+	mov bp,sp
+}
+
+#macro block ProcedureExitPart
+{        add sp,##<LOCAL_DATA_SIZE>
+	pop bp
+	ret
+}
+
+#macro block ProcedureTail
+{Proc##<PROC_ID> ENDP
+
+}
+
+#macro block MainPartHeader
+{Begin:
+}
+
+#macro block RegistersInitialize
+{        mov ax,@data
+	mov ds,ax
+	mov bp,sp
+}
+
+#macro block ExitOperation
+{        mov ah,4ch
+	int 21h
+}
+
+#macro block MainPartTail
+{
+}
+
+#macro block call
+{        call Proc##<CALLED_PROC_ID>
+}
+
+#macro block CallHeader
+{        sub sp,##<PARAMS_BLOCK_SIZE>
+}
+
+#macro block CallTail
+{        add sp,##<PARAMS_BLOCK_SIZE>
+}
+
+#macro parinit con BYTE
+{        mov BYTE PTR ss:[bp-##<PARAMS_BLOCK_SIZE - CALL_PARAM_OFFSET>],##<CONST_VALUE>
+}
+
+#macro parinit glob BYTE
+{        mov al,[##<GLOBAL_OFFSET>]
+	mov BYTE PTR ss:[BP-##<PARAMS_BLOCK_SIZE - CALL_PARAM_OFFSET>],al
+}
+
+#macro parinit par BYTE
+{        mov al,ss:[BP+##<LOCAL_DATA_SIZE+4+PARAM_OFFSET>]
+	mov BYTE PTR ss:[bp-##<PARAMS_BLOCK_SIZE - CALL_PARAM_OFFSET>],al
+}
+
+#macro parinit loc BYTE
+{        mov al,ss:[BP+##<LOCAL_OFFSET>]
+	mov BYTE PTR ss:[bp-##<PARAMS_BLOCK_SIZE - CALL_PARAM_OFFSET>],al
+}
+
+#macro freereturn BYTE
+{
+;....................................................
+}
+
+#macro freereturn WORD
+{
+;....................................................
+}
+
+
+#map call
+     CallHeader
+     paramsinit
+     call
+     CallTail
+
+#map proc
+     ProcedureHeader
+     ProcedureInitPart
+     code
+     ProcedureExitPart
+     ProcedureTail
+
+#map global
+     ProgramHeader
+     code
+     ProgramTail
+
+#map main
+     MainPartHeader
+     RegistersInitialize
+     code
+     ExitOperation
+     MainPartTail
+
+#macro subexp[BYTE_TOP:SUM_BYTE,glob BYTE,glob BYTE]
+{        ;Top <- ByteVar + ByteVar...
+	mov al,ds:[##<OFFSET.1>]
+	add al,ds:[##<OFFSET.2>]
+	push ax
+}
+
+#macro subexp[BYTE_TOP:SUM_BYTE,con BYTE,con BYTE]
+{        ;Top <- ByteConst + ByteConst...
+	mov al,##<VALUE.1>
+	add al,##<VALUE.2>
+	push ax
+}
+
+#macro subexp[BYTE_TOP:SUM_BYTE,BYTE_TOP,BYTE_TOP]
+{        ;Top <- ByteTop + ByteTop
+	pop ax
+	pop bx
+	add ax,bx
+	push ax
+}
+
+#macro subexp[BYTE_TOP:SUB_BYTE,BYTE_TOP,BYTE_TOP]
+{        ;Top <- ByteTop - ByteTop
+	pop ax
+	pop bx
+	sub al,bl
+	push ax
+}
+
+#macro subexp[BYTE_TOP:SUB_BYTE,glob BYTE,BYTE_TOP]
+{        ;Top <- ByteVar - ByteTop
+	mov al,ds:[##<OFFSET.1>]
+	pop bx
+	sub al,bl
+	push bx
+}
+
+#macro subexp[BYTE_TOP:SUB_BYTE,BYTE_TOP,glob BYTE]
+{        ;Top <- ByteTop - ByteVar
+	pop ax
+	sub al,ds:[##<OFFSET.1>]
+	push ax
+}
+
+#macro subexp[BYTE_TOP:SUM_BYTE,BYTE_TOP,SUM_BYTE,BYTE_TOP,BYTE_TOP]
+{        ;Top <- ByteTop + (ByteTop + ByteTop)
+	pop ax
+	pop bx
+	add al,bl
+	pop bx
+	add al,bl
+	push ax
+}
+
+#macro subexp[BYTE_TOP:SUB_BYTE,BYTE_TOP,SUB_BYTE,BYTE_TOP,BYTE_TOP]
+{        ;Top <- ByteTop - (ByteTop - ByteTop)
+	pop ax
+	pop bx
+	sub al,bl
+	pop bx
+	add al,bl
+	push ax
+}
+
+#macro subexp[STATMENT:ASSIGN_BYTE,glob BYTE,BYTE_TOP]
+{        ;ByteVar := ByteTop
+	pop ax
+	mov ds:[##<OFFSET.1>],al
+}
+
+#macro subexp[STATMENT:ASSIGN_BYTE,glob BYTE,glob BYTE]
+{        ;ByteVar := ByteVar
+	mov al,ds:[##<OFFSET.2>]
+	mov ds:[##<OFFSET.1>],al
+}
+
+#macro subexp[STATMENT:ASSIGN_WORD,glob WORD,glob WORD]
+{        ;WordVar := WordTop
+	mov ax,ds:[##<OFFSET.2>]
+	mov ds:[##<OFFSET.1>],ax
+}
+
+#macro subexp[STATMENT:ASSIGN_WORD,glob WORD,BYTE_TOP]
+{        ;WordVar := WordTop
+	pop ax
+	mov ds:[##<OFFSET.1>],ax
+}
+
+#macro subexp[BYTE_TOP:SUM_WORD,BYTE_TOP,BYTE_TOP]
+{        ;WordTop <- WordTop + WordTop
+	pop ax
+	pop bx
+	add ax,bx
+	push ax
+}
+
+#macro subexp[BYTE_TOP:SUB_WORD,BYTE_TOP,BYTE_TOP]
+{        ;WordTop <- WordTop - WordTop
+	pop ax
+	pop bx
+	sub ax,bx
+	push ax
+}
+
+#macro subexp[BYTE_TOP:SUM_WORD,glob WORD,glob WORD]
+{        ;WordTop <- WordVar + WordVar
+	mov ax,ds:[##<OFFSET.1>]
+	add ax,ds:[##<OFFSET.2>]
+	push ax
+}
+
+#macro subexp[BYTE_TOP:SUB_WORD,glob WORD,glob WORD]
+{        ;WordTop <- WordVar - WordVar
+	mov ax,ds:[##<OFFSET.1>]
+	sub ax,ds:[##<OFFSET.2>]
+	push ax
+}
+
+#macro subexp[BYTE_TOP:SUM_WORD,IND_BYTE,glob POINTER,IND_BYTE,glob POINTER]
+{        ;WordTop <- Word[ PtrVar ] + Word[ PtrVar ]
+	mov di,ds:[##<OFSSET.1>]
+	mov ax,[di]
+	mov di,ds:[##<OFFSET.2>]
+	add ax,[di]
+	push ax
+}
+
+#macro subexp[BYTE_TOP:SUB_WORD,IND_BYTE,glob POINTER,IND_BYTE,glob POINTER]
+{        ;WordTop <- Word[ PtrVar ] - Word[ PtrVar ]
+	mov di,ds:[##<OFSSET.1>]
+	mov ax,[di]
+	mov di,ds:[##<OFFSET.2>]
+	sub ax,[di]
+	push ax
+}
+
+#macro subexp[STATMENT:LABEL,id]
+{Label##<ID.1>:
+}
+
+#macro subexp[STATMENT:IF_ABOVE_JUMP,con BYTE,glob BYTE,id]
+{        ;if ByteVar > ByteCon then jump to Label
+	mov al,##<VALUE.1>
+	cmp al,[##<OFFSET.2>]
+	jc Label##<ID.3>
+}
